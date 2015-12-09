@@ -10,4 +10,4 @@ typedef struct arguments arguments_t;
 
 arguments_t *get_arguments(int count, const char **arguments);
 const char *get_key_value(char *, arguments_t *arguments, int argc, const char **args);
-#endf /* _ARGUMENTS_H */
+#endif /* _ARGUMENTS_H */
