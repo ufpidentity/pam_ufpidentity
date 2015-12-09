@@ -10,6 +10,7 @@ $(ODIR)/%.o: %.c $(DEPS)
 
 pam_ufpidentity.so: $(OBJ)
 	gcc -shared -o $@ $^ $(LIBS) -Wl,-z,defs
+	chmod a-x $@
 
 .PHONY: clean
 
