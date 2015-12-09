@@ -8,7 +8,7 @@ OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
 $(ODIR)/%.o: %.c $(DEPS)
 	$(CC) -fPIC -c -o $@ $< $(CFLAGS)
 
-pam_ufpidentity : $(OBJ)
+pam_ufpidentity.so: $(OBJ)
 	gcc -shared -o $@ $^ $(LIBS) -Wl,-z,defs
 
 .PHONY: clean
