@@ -3,6 +3,11 @@
 #include <string.h>
 #include <stdarg.h>
 #include <syslog.h>
+#include <sys/socket.h>
+#include <errno.h>
+#include <netdb.h>
+#include <arpa/inet.h>
+
 #include <security/pam_appl.h>
 #define PAM_SM_AUTH
 #include <security/pam_modules.h>
@@ -51,6 +56,40 @@ int converse(pam_handle_t * pamh, int nargs, struct pam_message **message, struc
     return retval;
 }
 
+int hostname_to_ip(const char *hostname, char *ip) {
+    struct hostent *he;
+    struct in_addr **addr_list;
+    int i;
+
+    if ( (he = gethostbyname( hostname ) ) == NULL) {
+        // get the host info
+        herror("gethostbyname");
+        return 1;
+    }
+
+    addr_list = (struct in_addr **) he->h_addr_list;
+
+    for(i = 0; addr_list[i] != NULL; i++) {
+        //Return the first one;
+        strcpy(ip , inet_ntoa(*addr_list[i]) );
+        return 0;
+    }
+    return 1;
+}
+
+void try_rhost(StrMap *sm, pam_handle_t *pamh) {
+    const void *from = NULL;
+    pam_get_item(pamh, PAM_RHOST, &from);
+    log_message(LOG_DEBUG, pamh, "PAM_RHOST %s", from);
+    if (from != NULL) {
+        char *ip = malloc(100*sizeof(char));
+        memset(ip, 0, 100*sizeof(char));
+        int r = hostname_to_ip(from, ip);
+        sm_put(sm, "client_ip", (r == 0)?ip:from);
+	free(ip);
+    }
+}
+
 /* expected hook, this is where custom stuff happens */
 PAM_EXTERN int pam_sm_authenticate(pam_handle_t * pamh, int flags, int argc, const char **argv)
 {
@@ -63,6 +102,7 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t * pamh, int flags, int argc, con
     }
     log_message(LOG_INFO, pamh, "username %s", username);
 
+
     arguments_t *arguments = get_arguments(argc, argv);
     /**
      * preAuthenticate with username, if success continue, else return error. At this point
@@ -74,7 +114,11 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t * pamh, int flags, int argc, con
                                                                 (char *)get_key_value("passphrase", arguments, argc, argv));
     free(arguments);
     authentication_context_t *authentication_context = NULL;
-    authentication_pretext_t *authentication_pretext = pre_authenticate(identity_context, username, sm_new(10));
+    StrMap *sm = sm_new(10);
+    try_rhost(sm, pamh);
+
+    authentication_pretext_t *authentication_pretext = pre_authenticate(identity_context, username, sm);
+
     if (authentication_pretext != NULL) {
         log_message(LOG_DEBUG, pamh, "response %s", authentication_pretext->authentication_result->message);
         if ((strcmp(authentication_pretext->authentication_result->message, "OK") == 0) && (strcmp(authentication_pretext->authentication_result->text, "SUCCESS") == 0)) {
@@ -110,6 +154,7 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t * pamh, int flags, int argc, con
                         index++;
                         display_item = display_item->next;
                     } while (display_item != NULL);
+                    try_rhost(sm, pamh);
                     authentication_context = authenticate(identity_context, authentication_pretext->name, sm);
                 } else
                     break;
