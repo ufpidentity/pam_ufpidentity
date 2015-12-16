@@ -13,11 +13,33 @@
 #include <security/pam_modules.h>
 #define MODULE_NAME "pam_ufpidentity"
 #include "identity.h"
-#include "arguments.h"
 
 static int check_authentication_context(authentication_context_t * authentication_context);
 static int get_display_item_count(display_item_t * display_items);
 static char *get_display_item_string(display_item_t * display_items);
+
+
+const char 
+*get_key_value(const char *key, int argc, const char **argv) {
+    char *delim, sep = '=';
+    int i;
+
+    for (i = 0; i < argc; ++i) {
+        delim = strchr(argv[i], sep);
+
+        /* No separator found */
+        if (delim == NULL)
+            continue;
+
+        /* No key */
+        if (delim == argv[i])
+            continue;
+
+        if (strncmp(key, argv[i], delim - argv[i]) == 0)
+            return delim + 1;
+    }
+    return NULL;
+}
 
 static void log_message(int priority, pam_handle_t * pamh, const char *format, ...)
 {
@@ -101,17 +123,14 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t * pamh, int flags, int argc, con
     }
     log_message(LOG_INFO, pamh, "username %s", username);
 
-
-    arguments_t *arguments = get_arguments(argc, argv);
     /**
      * preAuthenticate with username, if success continue, else return error. At this point
      * we are going to be allocating memory so we can't just retun without cleaning things up.
      */
-    identity_context_t *identity_context = get_identity_context((char *)get_key_value("cert", arguments, argc, argv),
-                                                                (char *)get_key_value("truststore", arguments, argc, argv),
-                                                                (char *)get_key_value("key", arguments, argc, argv),
-                                                                (char *)get_key_value("passphrase", arguments, argc, argv));
-    free(arguments);
+    identity_context_t *identity_context = get_identity_context((char *)get_key_value("cert", argc, argv),
+                                                                (char *)get_key_value("truststore", argc, argv),
+                                                                (char *)get_key_value("key", argc, argv),
+                                                                (char *)get_key_value("passphrase", argc, argv));
     authentication_context_t *authentication_context = NULL;
     StrMap *sm = sm_new(10);
     try_rhost(sm, pamh);

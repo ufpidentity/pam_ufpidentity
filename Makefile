@@ -2,7 +2,7 @@ CC=gcc
 ODIR=.
 LIBS=-lpam -lufpidentity
 
-_OBJ = pam_ufpidentity.o arguments.o
+_OBJ = pam_ufpidentity.o
 OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
 
 $(ODIR)/%.o: %.c $(DEPS)
