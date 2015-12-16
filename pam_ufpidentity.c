@@ -82,11 +82,10 @@ void try_rhost(StrMap *sm, pam_handle_t *pamh) {
     pam_get_item(pamh, PAM_RHOST, &from);
     log_message(LOG_DEBUG, pamh, "PAM_RHOST %s", from);
     if (from != NULL) {
-        char *ip = malloc(100*sizeof(char));
+        char ip[100];
         memset(ip, 0, 100*sizeof(char));
         int r = hostname_to_ip(from, ip);
         sm_put(sm, "client_ip", (r == 0)?ip:from);
-	free(ip);
     }
 }
 
