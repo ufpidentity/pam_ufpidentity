@@ -1,6 +1,7 @@
-CC=gcc
+CC?=gcc
 ODIR=.
 LIBS=-lpam -lufpidentity
+LIBDIR?=$(PREFIX)/lib
 
 _OBJ = pam_ufpidentity.o
 OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
@@ -10,9 +11,11 @@ $(ODIR)/%.o: %.c $(DEPS)
 
 pam_ufpidentity.so: $(OBJ)
 	gcc -shared -o $@ $^ $(LIBS) -Wl,-z,defs
-	chmod a-x $@
 
 .PHONY: clean
 
 clean:
 	rm -f $(ODIR)/*.o *~ core $(INCDIR)/*~
+
+install: pam_ufpidentity.so
+	install -m 644 pam_ufpidentity.so $(DESTDIR)$(LIBDIR)/security 
