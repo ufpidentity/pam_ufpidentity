@@ -10,7 +10,7 @@ $(ODIR)/%.o: %.c $(DEPS)
 	$(CC) -fPIC -c -o $@ $< $(CFLAGS)
 
 pam_ufpidentity.so: $(OBJ)
-	gcc -shared -o $@ $^ $(LIBS) -Wl,-z,defs
+	gcc -shared -Wl,-soname,$@ -o $@ $^ $(LIBS) -Wl,-z,defs
 
 .PHONY: clean
 
