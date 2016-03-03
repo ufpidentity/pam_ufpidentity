@@ -7,10 +7,10 @@ _OBJ = pam_ufpidentity.o
 OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
 
 $(ODIR)/%.o: %.c $(DEPS)
-	$(CC) -fPIC -c -o $@ $< $(CFLAGS)
+	$(CC) -fPIC -c -o $@ $< $(CPPFLAGS) $(CFLAGS)
 
 pam_ufpidentity.so: $(OBJ)
-	gcc -shared -Wl,-soname,$@ -o $@ $^ $(LIBS) -Wl,-z,defs
+	gcc -shared -Wl,-soname,$@ -o $@ $^ $(LIBS) -Wl,-z,defs $(LDFLAGS)
 
 .PHONY: clean
 
