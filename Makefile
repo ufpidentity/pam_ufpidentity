@@ -18,4 +18,5 @@ clean:
 	rm -f $(ODIR)/*.o *~ core $(INCDIR)/*~
 
 install: pam_ufpidentity.so
+	test -d $(DESTDIR)$(LIBDIR)/security || mkdir -p $(DESTDIR)$(LIBDIR)/security
 	install -m 644 pam_ufpidentity.so $(DESTDIR)$(LIBDIR)/security 
