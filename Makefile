@@ -15,8 +15,8 @@ pam_ufpidentity.so: $(OBJ)
 .PHONY: clean
 
 clean:
-	rm -f $(ODIR)/*.o *~ core $(INCDIR)/*~
+	rm -f $(ODIR)/*.o *~ core $(INCDIR)/*~ pam_ufpidentity.so
 
 install: pam_ufpidentity.so
-	test -d $(DESTDIR)$(LIBDIR)/security || mkdir -p $(DESTDIR)$(LIBDIR)/security
+	mkdir -p $(DESTDIR)$(LIBDIR)/security
 	install -m 644 pam_ufpidentity.so $(DESTDIR)$(LIBDIR)/security 
