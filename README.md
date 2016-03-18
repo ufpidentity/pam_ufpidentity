@@ -23,7 +23,7 @@ for an overview. Make sure to have an ASCII representable key for your
 private key. And make sure to carefully think about the CN you
 use. For a large number of machines you may want a base domain like
 example.com, rather than web01.example.com, web02.example.com, etc. On
-a Linux machine it is recommended to keepy your private keys in
+a Linux machine it is recommended to keep your private keys in
 /etc/ssl/private and your certificates in /etc/ssl/certs. You will
 also need our truststore somewhere (/etc/ssl/certs is good).
 
