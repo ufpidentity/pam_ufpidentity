@@ -41,6 +41,7 @@ const char
     return NULL;
 }
 
+#if 0
 static void log_message(int priority, pam_handle_t * pamh, const char *format, ...)
 {
     char *service = NULL;
@@ -59,6 +60,7 @@ static void log_message(int priority, pam_handle_t * pamh, const char *format, .
     closelog();
     va_end(args);
 }
+#endif
 
 PAM_EXTERN int pam_sm_setcred(pam_handle_t * pamh, int flags, int argc, const char **argv)
 {
@@ -85,7 +87,9 @@ int hostname_to_ip(const char *hostname, char *ip) {
 
     if ( (he = gethostbyname( hostname ) ) == NULL) {
         // get the host info
+#if 0
         herror("gethostbyname");
+#endif
         return 1;
     }
 
@@ -102,10 +106,10 @@ int hostname_to_ip(const char *hostname, char *ip) {
 void try_rhost(StrMap *sm, pam_handle_t *pamh) {
     const void *from = NULL;
     pam_get_item(pamh, PAM_RHOST, &from);
-    log_message(LOG_DEBUG, pamh, "PAM_RHOST %s", from);
+    pam_syslog(pamh, LOG_DEBUG, "PAM_RHOST %s", from);
     if (from != NULL) {
         char ip[100];
-        memset(ip, 0, 100*sizeof(char));
+        memset(ip, 0, sizeof(ip));
         int r = hostname_to_ip(from, ip);
         sm_put(sm, "client_ip", (r == 0)?ip:from);
     }
@@ -121,7 +125,7 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t * pamh, int flags, int argc, con
     if ((retval = pam_get_user(pamh, &username, NULL)) != PAM_SUCCESS) {
         return retval;
     }
-    log_message(LOG_INFO, pamh, "username %s", username);
+    pam_syslog(pamh, LOG_INFO, "username %s", username);
 
     /**
      * preAuthenticate with username, if success continue, else return error. At this point
@@ -137,8 +141,9 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t * pamh, int flags, int argc, con
 
     authentication_pretext_t *authentication_pretext = pre_authenticate(identity_context, username, sm);
 
+    retval = PAM_AUTH_ERR;
     if (authentication_pretext != NULL) {
-        log_message(LOG_DEBUG, pamh, "response %s", authentication_pretext->authentication_result->message);
+        pam_syslog(pamh, LOG_DEBUG, "response %s", authentication_pretext->authentication_result->message);
         if ((strcmp(authentication_pretext->authentication_result->message, "OK") == 0) && (strcmp(authentication_pretext->authentication_result->text, "SUCCESS") == 0)) {
             do {
                 int count = get_display_item_count(authentication_pretext->display_items);
@@ -171,7 +176,9 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t * pamh, int flags, int argc, con
                         sm_put(sm, display_item->name, response[index].resp);
                         index++;
                         display_item = display_item->next;
+			free (response[index].resp);
                     } while (display_item != NULL);
+		    free (response);
                     try_rhost(sm, pamh);
                     authentication_context = authenticate(identity_context, authentication_pretext->name, sm);
                 } else
@@ -181,10 +188,10 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t * pamh, int flags, int argc, con
             retval = PAM_USER_UNKNOWN;
         free_authentication_pretext(authentication_pretext);
     } else
-        log_message(LOG_DEBUG, pamh, "authentication_pretext is NULL");
+        pam_syslog(pamh, LOG_DEBUG, "authentication_pretext is NULL");
 
     if (authentication_context != NULL) {
-        log_message(LOG_DEBUG, pamh, "message %s, text %s", authentication_context->authentication_result->message, authentication_context->authentication_result->text);
+        pam_syslog(pamh, LOG_DEBUG, "message %s, text %s", authentication_context->authentication_result->message, authentication_context->authentication_result->text);
         if (strcmp(authentication_context->authentication_result->text, "SUCCESS") == 0)
             retval = PAM_SUCCESS;
         else
@@ -200,14 +207,16 @@ static char *get_display_item_string(display_item_t * display_item)
 {
     int length = strlen(display_item->display_name) + strlen(display_item->nickname) + 5;       // a space, two parens, colon and terminating null
     char *buffer = malloc(length);
-    memset(buffer, 0, length);
-    sprintf(buffer, "%s (%s):", display_item->display_name, display_item->nickname);
+    if (buffer) {
+        memset(buffer, 0, length);
+        sprintf(buffer, "%s (%s):", display_item->display_name, display_item->nickname);
+    }
     return buffer;
 }
 
 static int check_authentication_context(authentication_context_t * authentication_context)
 {
-    log_message(LOG_DEBUG, NULL, "message %s, text %s", authentication_context->authentication_result->message, authentication_context->authentication_result->text);
+    pam_syslog(pamh, LOG_DEBUG, "message %s, text %s", authentication_context->authentication_result->message, authentication_context->authentication_result->text);
     return (((strcmp(authentication_context->authentication_result->message, "OK") == 0) && (strcmp(authentication_context->authentication_result->text, "SUCCESS") == 0))
             || (strcmp(authentication_context->authentication_result->text, "RESET") == 0));
 }
